@@ -1,0 +1,44 @@
+import baostock as bs
+import pandas as pd
+import numpy as np
+
+# 登陆系统
+lg = bs.login()
+# 显示登陆返回信息
+print('login respond error_code:'+lg.error_code)
+print('login respond  error_msg:'+lg.error_msg)
+
+"""
+    获取沪深A股历史K线数据
+    详细指标参数，参见“历史行情指标参数”章节；“分钟线”参数与“日线”参数不同。
+    分钟线指标：date,time,code,open,high,low,close,volume,amount,adjustflag
+"""
+rs = bs.query_history_k_data_plus("sz.002415",
+    "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST",
+    start_date='2015-01-01', end_date='2019-12-31',
+    frequency="d", adjustflag="3")
+print('query_history_k_data_plus respond error_code:'+rs.error_code)
+print('query_history_k_data_plus respond  error_msg:'+rs.error_msg)
+
+# 打印结果集
+data_list = []
+while (rs.error_code == '0') & rs.next():
+    # 获取一条记录，将记录合并在一起
+    data_list.append(rs.get_row_data())
+result = pd.DataFrame(data_list, columns=rs.fields)
+
+rise = np.array([''] * result.shape[0])
+for i in range(1,len(result['open'])):
+    if result['open'][i] > result['open'][i-1]:
+        rise[i] = 1
+    else:
+        rise[i] = 0
+
+result['rise'] = rise
+
+# 结果集输出到csv文件
+result.to_csv("/Users/apple/PycharmProjects/untitled4/stock_analysis/fun_data.csv", index=False)
+print(result)
+
+# 登出系统
+bs.logout()
